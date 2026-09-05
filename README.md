@@ -1,422 +1,286 @@
-# 工单管理系统
+# 学校工单管理系统
 
-一个生产级的企业工单管理系统，支持工单创建、分配、流转、审批、统计等全流程管理。
-
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/typescript-%3E%3D5.0-blue.svg)](https://www.typescriptlang.org/)
-
----
+一个基于 NestJS + React + TypeScript + PostgreSQL 的工单管理系统，适用于学校、企业等场景的工单提交、分配、处理和跟踪。
 
 ## 📋 项目概述
 
-### 当前状态
-- ✅ **阶段1**: 项目规划和设计（已完成）
-- ✅ **阶段2**: 项目脚手架和认证模块（已完成）
-- 🚧 **阶段3**: 工单管理核心功能（计划中）
+本项目是一个全栈工单管理系统，提供完整的工单生命周期管理功能，包括工单创建、分配、处理、评论、附件管理、通知等核心功能。
 
-### 完成进度
-- **代码量**: 101个文件，30390行代码
-- **文档数**: 14个设计文档和报告
-- **Git提交**: 17次提交
-- **完成度**: 约30%
+**技术栈**: NestJS + React + TypeScript + PostgreSQL + Prisma  
+**项目状态**: 开发中 (已完成15%)  
+**开始日期**: 2026-09-06
 
----
+## ✨ 核心功能
 
-## 🚀 快速开始
+### 已规划功能
 
-### 方式1：Docker Compose（推荐）
+- ✅ **用户管理**: 注册、登录、个人信息管理
+- 🔄 **工单管理**: 创建、查询、更新、删除工单
+- 🔄 **工单流转**: 工单状态流转、分配、处理
+- 🔄 **评论系统**: 工单评论、编辑历史追踪
+- 🔄 **附件管理**: 上传、下载、删除附件
+- ⏳ **通知系统**: 应用内通知、邮件通知
+- ⏳ **统计报表**: 工单统计、图表展示
+- ⏳ **权限管理**: 角色管理、权限分配
 
-```bash
-# 1. 克隆项目
-git clone <repository-url>
-cd 工单项目
+### 功能特色
 
-# 2. 启动所有服务
-docker-compose up -d
+- 🎯 **友好的工单编号**: 自增整数编号（#1, #2, #3...），便于口头交流
+- 📝 **评论编辑历史**: 追踪评论的修改历史
+- 🔒 **权限控制**: 基于 `resource:action` 格式的细粒度权限
+- 📦 **数据快照**: 使用JSON存储创建者信息，避免外键约束问题
+- 🔔 **多渠道通知**: 应用内 + 邮件 + Webhook
+- 📊 **实时统计**: 工单数量、状态分布、处理时长等
 
-# 3. 访问应用
-# 前端: http://localhost
-# 后端: http://localhost:3000
-# API文档: http://localhost:3000/api/docs
-```
-
-### 方式2：本地开发
-
-```bash
-# 1. 安装依赖
-npm install
-
-# 2. 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件，配置数据库连接等
-
-# 3. 生成Prisma Client
-npm run prisma:generate
-
-# 4. 数据库迁移
-npm run prisma:migrate
-
-# 5. 初始化数据
-npm run prisma:seed
-
-# 6. 启动后端（开发模式）
-npm run start:dev
-
-# 7. 启动前端（新终端）
-cd frontend
-npm install
-npm run dev
-```
-
-访问：
-- 前端：http://localhost:5173
-- 后端：http://localhost:3000
-- API文档：http://localhost:3000/api/docs
-
----
-
-## 🧪 测试账号
-
-| 用户名 | 密码 | 角色 |
-|--------|------|------|
-| admin | Password123! | 系统管理员 |
-| zhangsan | Password123! | 工单创建者 |
-| lisi | Password123! | 处理人员 |
-| wangwu | Password123! | 部门主管 |
-| zhaoliu | Password123! | 分管领导 |
-
----
-
-## 🏗️ 技术栈
-
-### 后端
-- **框架**: NestJS 10.x
-- **语言**: TypeScript 5.x
-- **ORM**: Prisma 5.x
-- **数据库**: PostgreSQL 14+
-- **认证**: JWT (jsonwebtoken)
-- **加密**: BCrypt
-- **文档**: Swagger/OpenAPI
-
-### 前端
-- **框架**: React 18.x
-- **语言**: TypeScript 5.x
-- **构建工具**: Vite 5.x
-- **状态管理**: Zustand
-- **UI框架**: Ant Design 5.x
-- **HTTP客户端**: Axios
-- **路由**: React Router 6.x
-
-### DevOps
-- **容器**: Docker + Docker Compose
-- **代理**: Nginx
-- **进程管理**: PM2
-- **代码规范**: ESLint + Prettier
-
----
-
-## 📚 文档
-
-### 设计文档
-- [数据库设计文档](docs/数据库设计文档.md) - 数据模型和关系设计
-- [系统架构设计文档](docs/系统架构设计文档.md) - 整体架构和技术选型
-- [API接口设计文档](docs/API接口设计文档.md) - RESTful API规范
-- [前端架构设计文档](docs/前端架构设计文档.md) - 前端技术架构
-- [UI设计规范](docs/UI设计规范.md) - UI设计原则和规范
-- [页面设计清单](docs/页面设计清单.md) - 所有页面的设计
-- [后端开发规范](docs/后端开发规范.md) - 后端代码规范
-
-### 进度报告
-- [阶段1总结报告](docs/阶段1总结报告.md) - 设计阶段总结
-- [阶段2完成报告](docs/阶段2完成报告.md) - 脚手架和认证模块
-- [阶段3工作计划](docs/阶段3工作计划.md) - 工单核心功能计划
-- [项目总结报告](docs/项目总结报告.md) - 完整项目总结
-
-### 使用文档
-- [快速开始指南](GETTING_STARTED.md) - 快速启动指南
-- [后端使用文档](backend-README.md) - 后端开发文档
-
----
-
-## ✨ 已实现功能
-
-### 用户认证和授权
-- ✅ 用户注册（用户名、邮箱唯一性验证）
-- ✅ 用户登录（密码验证、状态检查）
-- ✅ JWT Token认证（Access + Refresh双Token）
-- ✅ Token自动刷新
-- ✅ 用户信息查询
-- ✅ 登出功能
-- ✅ 前端登录/注册界面
-- ✅ 路由保护
-
-### 安全机制
-- ✅ BCrypt密码加密（10轮）
-- ✅ JWT Token签名验证
-- ✅ 账号锁定（5次失败锁定15分钟）
-- ✅ 失败登录次数记录
-- ✅ 最后登录时间和IP记录
-- ✅ SQL注入防护（Prisma ORM）
-- ✅ XSS防护（输入验证）
-
----
-
-## 🚧 待实现功能（阶段3）
-
-### 工单管理
-- [ ] 工单CRUD操作
-- [ ] 工单状态流转
-- [ ] 工单分配和转交
-- [ ] 工单列表页面（分页、筛选、排序）
-- [ ] 工单详情页面
-- [ ] 工单表单页面
-
-### 附件管理
-- [ ] 文件上传
-- [ ] 文件下载
-- [ ] 文件删除
-- [ ] 文件类型验证
-
-### 评论和通知
-- [ ] 添加评论
-- [ ] 评论列表
-- [ ] 系统通知
-- [ ] 通知列表
-
-### 统计报表
-- [ ] 概览统计
-- [ ] 按状态/优先级统计
-- [ ] 趋势分析
-- [ ] 仪表盘页面
-
-详见：[阶段3工作计划](docs/阶段3工作计划.md)
-
----
-
-## 📁 项目结构
+## 🏗️ 项目结构
 
 ```
 工单项目/
-├── backend/                    # 后端代码
-│   └── src/
-│       ├── main.ts            # 应用入口
-│       ├── app.module.ts      # 根模块
-│       ├── modules/           # 业务模块
-│       │   └── auth/          # 认证模块
-│       └── prisma/            # Prisma配置
-├── frontend/                  # 前端代码
-│   └── src/
-│       ├── main.tsx           # 应用入口
-│       ├── App.tsx            # 根组件
-│       ├── pages/             # 页面组件
-│       │   └── Auth/          # 认证页面
-│       ├── components/        # 通用组件
-│       ├── api/               # API层
-│       ├── store/             # 状态管理
-│       ├── types/             # 类型定义
-│       └── utils/             # 工具函数
-├── database/                  # 数据库脚本
-│   ├── schema-postgres.sql    # PostgreSQL建表
-│   ├── schema-mysql.sql       # MySQL建表
-│   ├── init-data.sql          # 初始化数据
-│   └── test-data.sql          # 测试数据
-├── docs/                      # 文档
-│   ├── 数据库设计文档.md
-│   ├── 系统架构设计文档.md
-│   ├── API接口设计文档.md
-│   └── ...
-├── prisma/                    # Prisma配置
-│   ├── schema.prisma          # 数据模型
-│   └── seed.ts                # 种子数据
-├── docker-compose.yml         # Docker Compose配置
-├── Dockerfile.frontend        # 前端Dockerfile
-├── Dockerfile.backend         # 后端Dockerfile
-├── Makefile                   # Make命令
-├── start.sh                   # 启动脚本
-├── .env.example               # 环境变量示例
-├── package.json               # 后端依赖
-└── README.md                  # 本文档
+├── backend/              # 后端代码 (NestJS + Prisma)
+│   ├── src/
+│   │   ├── auth/        # 认证模块
+│   │   ├── tickets/     # 工单模块
+│   │   ├── users/       # 用户模块
+│   │   ├── logs/        # 评论模块
+│   │   └── attachments/ # 附件模块
+│   ├── prisma/          # Prisma schema和迁移
+│   ├── test/            # 测试文件
+│   └── package.json
+├── frontend/            # 前端代码 (React + TypeScript)
+│   ├── src/
+│   │   ├── pages/       # 页面组件
+│   │   ├── components/  # 通用组件
+│   │   ├── services/    # API服务
+│   │   └── utils/       # 工具函数
+│   └── package.json
+├── docs/                # 项目文档
+│   ├── 需求分析.md
+│   ├── 技术选型.md
+│   ├── 数据库设计.md
+│   ├── API设计.md
+│   ├── 前端设计.md
+│   ├── 部署方案.md
+│   ├── 测试计划.md
+│   ├── 开发规范.md
+│   ├── Peppermint项目学习报告.md
+│   └── 项目状态.md
+├── database/            # 数据库脚本
+│   ├── schema.sql       # 表结构
+│   ├── seed.sql         # 测试数据
+│   └── init.sql         # 初始化脚本
+└── README.md
 ```
 
----
+## 🚀 快速开始
 
-## 🔧 环境要求
+### 环境要求
 
-- Node.js ≥ 18
-- PostgreSQL ≥ 14
-- Docker ≥ 20 (可选)
-- Docker Compose ≥ 2 (可选)
-- npm ≥ 9 或 pnpm ≥ 8
+- Node.js >= 18.0
+- PostgreSQL >= 14.0
+- pnpm >= 8.0 (推荐) 或 npm >= 9.0
 
----
+### 安装步骤
 
-## 📊 开发命令
-
-### 后端
 ```bash
-npm run start          # 启动（生产）
-npm run start:dev      # 启动（开发）
-npm run start:debug    # 启动（调试）
-npm run build          # 构建
-npm run test           # 单元测试
-npm run test:e2e       # E2E测试
-npm run test:cov       # 测试覆盖率
-npm run lint           # 代码检查
-npm run format         # 代码格式化
+# 1. 克隆项目
+cd ~/projects/工单项目
+
+# 2. 安装后端依赖
+cd backend
+pnpm install
+
+# 3. 配置数据库
+cp .env.example .env
+# 编辑 .env 文件，配置数据库连接
+
+# 4. 运行数据库迁移
+pnpm prisma migrate dev
+
+# 5. 启动后端
+pnpm start:dev
+
+# 6. 安装前端依赖
+cd ../frontend
+pnpm install
+
+# 7. 启动前端
+pnpm dev
 ```
 
-### Prisma
+### 访问应用
+
+- **前端**: http://localhost:3000
+- **后端API**: http://localhost:3001
+- **API文档**: http://localhost:3001/api/docs
+
+## 📚 文档
+
+### 核心文档
+
+- [需求分析](./docs/需求分析.md) - 功能需求和非功能需求
+- [技术选型](./docs/技术选型.md) - 技术栈选择理由
+- [数据库设计](./docs/数据库设计.md) - 数据表结构设计
+- [API设计](./docs/API设计.md) - RESTful API规范
+- [前端设计](./docs/前端设计.md) - 页面结构和组件设计
+- [部署方案](./docs/部署方案.md) - Docker部署配置
+- [测试计划](./docs/测试计划.md) - 测试策略和用例
+- [开发规范](./docs/开发规范.md) - 代码规范和Git工作流
+
+### 研究报告
+
+- [Peppermint项目学习报告](./docs/Peppermint项目学习报告.md) - 参考项目研究
+- [项目状态](./docs/项目状态.md) - 进度跟踪和决策记录
+
+## 🔧 开发
+
+### 后端开发
+
 ```bash
-npm run prisma:generate   # 生成Client
-npm run prisma:migrate    # 数据库迁移
-npm run prisma:seed       # 初始化数据
-npm run prisma:studio     # 打开Studio
-npm run prisma:reset      # 重置数据库
+cd backend
+
+# 开发模式
+pnpm start:dev
+
+# 生产构建
+pnpm build
+
+# 运行测试
+pnpm test
+
+# 测试覆盖率
+pnpm test:cov
+
+# 代码格式化
+pnpm format
+
+# 代码检查
+pnpm lint
 ```
 
-### 前端
+### 前端开发
+
 ```bash
 cd frontend
-npm run dev            # 开发服务器
-npm run build          # 生产构建
-npm run preview        # 预览构建结果
-npm run lint           # 代码检查
+
+# 开发模式
+pnpm dev
+
+# 生产构建
+pnpm build
+
+# 运行测试
+pnpm test
+
+# 代码检查
+pnpm lint
 ```
 
-### Docker
+### 数据库操作
+
 ```bash
-docker-compose up -d      # 启动所有服务
-docker-compose down       # 停止所有服务
-docker-compose logs -f    # 查看日志
-docker-compose ps         # 查看服务状态
-```
+cd backend
 
-### Make命令
-```bash
-make setup             # 初始化项目
-make dev               # 开发模式
-make build             # 构建
-make test              # 测试
-make clean             # 清理
-```
+# 创建迁移
+pnpm prisma migrate dev --name <migration-name>
 
----
+# 运行迁移
+pnpm prisma migrate deploy
+
+# 重置数据库
+pnpm prisma migrate reset
+
+# 打开Prisma Studio
+pnpm prisma studio
+
+# 生成Prisma Client
+pnpm prisma generate
+```
 
 ## 🧪 测试
 
-### 后端测试
+### 测试策略
+
+- **单元测试**: 覆盖率目标 ≥80%
+- **集成测试**: API端到端测试
+- **E2E测试**: 关键用户流程测试
+
+### 运行测试
+
 ```bash
-# 单元测试
-npm run test
+# 后端测试
+cd backend
+pnpm test              # 运行所有测试
+pnpm test:watch        # 监听模式
+pnpm test:cov          # 生成覆盖率报告
 
-# E2E测试
-npm run test:e2e
-
-# 测试覆盖率
-npm run test:cov
-```
-
-### 前端测试
-```bash
+# 前端测试
 cd frontend
-npm run test
+pnpm test              # 运行所有测试
+pnpm test:watch        # 监听模式
+pnpm test:coverage     # 生成覆盖率报告
 ```
 
----
+## 📦 部署
 
-## 🐛 调试
+### Docker部署
 
-### 后端调试
-1. 使用VS Code调试器
-2. 在`.vscode/launch.json`中配置
-3. 或运行：`npm run start:debug`
+```bash
+# 构建镜像
+docker-compose build
 
-### 前端调试
-1. 浏览器DevTools
-2. React DevTools扩展
-3. Redux DevTools（如使用）
+# 启动服务
+docker-compose up -d
 
----
+# 查看日志
+docker-compose logs -f
 
-## 📈 性能
+# 停止服务
+docker-compose down
+```
 
-- API响应时间: <500ms
-- 前端首屏加载: <2s
-- 数据库查询: 已优化索引
-- 代码分割: 自动
+### 手动部署
 
----
+详见 [部署方案](./docs/部署方案.md)
 
-## 🔒 安全
+## 📈 开发进度
 
-- BCrypt密码加密（10轮）
-- JWT Token认证
-- 账号锁定保护
-- SQL注入防护
-- XSS防护
-- CORS配置
-- Helmet安全头
-- 速率限制
+| 阶段 | 状态 | 完成度 |
+|------|------|--------|
+| 阶段1: 项目初始化 | ✅ 完成 | 100% |
+| 阶段2: 参考项目研究 | ✅ 完成 | 100% |
+| 阶段3: 后端核心功能 | 🔄 准备中 | 0% |
+| 阶段4: 前端开发 | ⏳ 未开始 | 0% |
+| 阶段5: 通知系统 | ⏳ 未开始 | 0% |
+| 阶段6: 统计报表 | ⏳ 未开始 | 0% |
+| 阶段7: 权限管理 | ⏳ 未开始 | 0% |
+| 阶段8: 部署与文档 | ⏳ 未开始 | 0% |
 
----
+**总体进度**: 15% (2/8阶段完成)
 
-## 📝 开发规范
-
-- TypeScript严格模式
-- ESLint代码检查
-- Prettier代码格式化
-- Conventional Commits提交规范
-- Git Flow工作流
-- Code Review流程
-
----
+详细进度请查看 [项目状态](./docs/项目状态.md)
 
 ## 🤝 贡献
 
-欢迎贡献代码！请遵循以下流程：
+本项目为学校课程项目，暂不接受外部贡献。
 
-1. Fork项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'feat: Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启Pull Request
+## 📝 开发规范
 
----
+- **代码规范**: 遵循 ESLint + Prettier
+- **提交规范**: 使用 Conventional Commits
+- **分支策略**: Git Flow
+- **测试要求**: 单元测试覆盖率 ≥80%
+
+详见 [开发规范](./docs/开发规范.md)
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
-
----
-
-## 👥 团队
-
-- **Team Lead** - 项目规划和协调
-- **Database Architect** - 数据库设计
-- **Backend Architect** - 后端架构设计
-- **Frontend Architect** - 前端架构设计
-- **DevOps Engineer** - DevOps和部署
-- **Backend Developer** - 后端开发
-- **Frontend Developer** - 前端开发
-
----
+本项目仅用于学习和教学目的。
 
 ## 📞 联系方式
 
-如有问题或建议，欢迎通过以下方式联系：
-
-- Issue: [GitHub Issues](issues)
-- Email: your-email@example.com
-
----
-
-## 🙏 致谢
-
-感谢所有参与项目的开发者和贡献者！
+如有问题或建议，请联系项目维护者。
 
 ---
 
 **最后更新**: 2026-09-06  
-**版本**: v0.3.0-alpha  
-**状态**: 🚧 开发中
+**项目状态**: 活跃开发中
