@@ -2,7 +2,7 @@
 status: active
 owner_mode: goal
 objective: "对照用户需求，制作出项目最终完成的要求，要达到生产级别。使用plan-with-file制订方案，多agent进行分工，将全部工作（包括下一步建议）完成。"
-updated_at: 2026-09-06T02:24:35+08:00
+updated_at: 2026-09-06T02:44:39+08:00
 adapter_id: project-goal-goal
 ---
 
@@ -51,6 +51,12 @@ adapter_id: project-goal-goal
   <!-- loopx:todo todo_id=todo_4cbbc0941ea7 status=open task_class=advancement_task updated_at=2026-09-06T02:24:26%2B08:00 -->
 - [ ] [P0] 前端架构和UI设计规范（进行中 - frontend-architect）
   <!-- loopx:todo todo_id=todo_4189fb7699b8 status=open task_class=advancement_task updated_at=2026-09-06T02:24:35%2B08:00 -->
+- [ ] [P0] 创建项目脚手架和Docker环境（进行中 - devops-engineer）
+  <!-- loopx:todo todo_id=todo_f6737055eecb status=open task_class=advancement_task updated_at=2026-09-06T02:44:07%2B08:00 -->
+- [ ] [P0] 实现后端用户认证模块（进行中 - backend-developer）
+  <!-- loopx:todo todo_id=todo_d712c42eccb7 status=open task_class=advancement_task updated_at=2026-09-06T02:44:16%2B08:00 -->
+- [ ] [P0] 实现前端用户认证界面（进行中 - frontend-developer）
+  <!-- loopx:todo todo_id=todo_742d62f3ecfc status=open task_class=advancement_task updated_at=2026-09-06T02:44:39%2B08:00 -->
 
 ## Next Action
 
