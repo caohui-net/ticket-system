@@ -10,82 +10,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TicketStatus {
-  draft
-  pending_assign
-  processing
-  pending_review
-  rejected
-  completed
-  closed
-  cancelled
+model User {
+  id                   BigInt      @id @default(autoincrement()) @map("user_id")
+  username             String      @unique @db.VarChar(50)
+  password             String      @db.VarChar(255)
+  realName             String      @map("real_name") @db.VarChar(50)
+  email                String      @unique @db.VarChar(100)
+  phone                String?     @db.VarChar(20)
+  department           String?     @db.VarChar(50)
+  avatarUrl            String?     @map("avatar_url") @db.VarChar(255)
+  status               Int         @default(1) @db.SmallInt
+  failedLoginAttempts  Int         @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?   @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt          DateTime?   @map("last_login_at") @db.Timestamptz(6)
+  lastLoginIp          String?     @map("last_login_ip") @db.VarChar(45)
+  createdAt            DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt            DateTime?   @map("deleted_at") @db.Timestamptz(6)
+
+  userRoles            UserRole[]
+
+  @@map("users")
 }
 
-enum Priority {
-  urgent
-  high
-  medium
-  low
-}
-
-// 角色表
 model Role {
-  id          Int      @id @default(autoincrement()) @map("role_id")
-  code        String   @unique @map("role_code") @db.VarChar(50)
-  name        String   @map("role_name") @db.VarChar(50)
-  description String?  @db.VarChar(200)
-  permissions String?  @db.Text
-  isSystem    Int      @default(0) @map("is_system") @db.SmallInt
-  status      Int      @default(1) @db.SmallInt
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  id          BigInt      @id @default(autoincrement()) @map("role_id")
+  code        String      @unique @db.VarChar(50)
+  name        String      @db.VarChar(50)
+  description String?     @db.VarChar(200)
+  permissions String?     @db.Text
+  isSystem    Int         @default(0) @map("is_system") @db.SmallInt
+  status      Int         @default(1) @db.SmallInt
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  userRoles UserRole[]
+  userRoles   UserRole[]
 
   @@map("roles")
 }
 
-// 用户表
-model User {
-  id                  BigInt    @id @default(autoincrement()) @map("user_id")
-  username            String    @unique @db.VarChar(50)
-  password            String    @db.VarChar(255)
-  realName            String    @map("real_name") @db.VarChar(50)
-  email               String    @unique @db.VarChar(100)
-  phone               String?   @db.VarChar(20)
-  department          String?   @db.VarChar(50)
-  avatarUrl           String?   @map("avatar_url") @db.VarChar(500)
-  status              Int       @default(1) @db.SmallInt
-  lastLoginAt         DateTime? @map("last_login_at")
-  lastLoginIp         String?   @map("last_login_ip") @db.VarChar(45)
-  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
-  lockedUntil         DateTime? @map("locked_until")
-  createdAt           DateTime  @default(now()) @map("created_at")
-  updatedAt           DateTime  @default(now()) @updatedAt @map("updated_at")
-  deletedAt           DateTime? @map("deleted_at")
-
-  userRoles UserRole[]
-
-  @@index([username])
-  @@index([email])
-  @@index([status])
-  @@index([deletedAt])
-  @@map("users")
-}
-
-// 用户角色关联表
 model UserRole {
-  id         BigInt   @id @default(autoincrement())
-  userId     BigInt   @map("user_id")
-  roleId     Int      @map("role_id")
-  assignedBy BigInt?  @map("assigned_by")
-  assignedAt DateTime @default(now()) @map("assigned_at")
+  id          BigInt    @id @default(autoincrement()) @map("user_role_id")
+  userId      BigInt    @map("user_id")
+  roleId      BigInt    @map("role_id")
+  assignedBy  BigInt?   @map("assigned_by")
+  assignedAt  DateTime  @default(now()) @map("assigned_at") @db.Timestamptz(6)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, roleId], name: "uk_user_role")
-  @@index([userId])
-  @@index([roleId])
+  @@unique([userId, roleId])
   @@map("user_roles")
 }
