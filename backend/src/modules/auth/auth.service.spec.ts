@@ -248,12 +248,8 @@ describe('AuthService', () => {
         throw new Error('Invalid token');
       });
 
-      await expect(service.refreshToken(invalidToken)).rejects.toThrow(
-        UnauthorizedException,
-      );
-      await expect(service.refreshToken(invalidToken)).rejects.toThrow(
-        '刷新令牌无效或已过期',
-      );
+      await expect(service.refreshToken(invalidToken)).rejects.toThrow(UnauthorizedException);
+      await expect(service.refreshToken(invalidToken)).rejects.toThrow('刷新令牌无效或已过期');
     });
   });
 

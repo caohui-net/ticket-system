@@ -29,6 +29,7 @@ model User {
   deletedAt            DateTime?   @map("deleted_at") @db.Timestamptz(6)
 
   userRoles            UserRole[]
+  assignedTickets      Ticket[]   @relation("AssignedTickets")
 
   @@map("users")
 }
@@ -61,4 +62,115 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@map("user_roles")
+}
+
+// 工单状态枚举
+enum TicketStatus {
+  OPEN          // 待处理
+  IN_PROGRESS   // 处理中
+  PENDING       // 待反馈
+  RESOLVED      // 已解决
+  CLOSED        // 已关闭
+  CANCELLED     // 已取消
+}
+
+// 工单优先级枚举
+enum TicketPriority {
+  LOW           // 低
+  MEDIUM        // 中
+  HIGH          // 高
+  URGENT        // 紧急
+}
+
+// 工单类型枚举
+enum TicketType {
+  ISSUE         // 故障报修
+  REQUEST       // 需求申请
+  CONSULTATION  // 咨询求助
+  COMPLAINT     // 投诉建议
+  OTHER         // 其他
+}
+
+// 工单表
+model Ticket {
+  id          BigInt          @id @default(autoincrement()) @map("ticket_id")
+  number      Int             @unique @default(autoincrement()) // 友好的工单编号 #1, #2, #3...
+  title       String          @db.VarChar(200)
+  description String          @db.Text
+  type        TicketType      @default(ISSUE)
+  priority    TicketPriority  @default(MEDIUM)
+  status      TicketStatus    @default(OPEN)
+
+  // 创建者信息（JSON快照，避免外键约束）
+  creatorSnapshot Json        @map("creator_snapshot")
+
+  // 分配信息
+  assigneeId  BigInt?         @map("assignee_id")
+  assignedAt  DateTime?       @map("assigned_at") @db.Timestamptz(6)
+
+  // 时间信息
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  resolvedAt  DateTime?       @map("resolved_at") @db.Timestamptz(6)
+  closedAt    DateTime?       @map("closed_at") @db.Timestamptz(6)
+
+  // 其他字段
+  tags        String[]        @default([])
+  locked      Boolean         @default(false) // 是否锁定（防止并发修改）
+  hidden      Boolean         @default(false) // 软隐藏
+
+  // 关联关系
+  assignee    User?           @relation("AssignedTickets", fields: [assigneeId], references: [id])
+  logs        TicketLog[]
+  attachments TicketAttachment[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+// 工单日志（评论）表
+model TicketLog {
+  id          BigInt    @id @default(autoincrement()) @map("log_id")
+  ticketId    BigInt    @map("ticket_id")
+  content     String    @db.Text
+  isPublic    Boolean   @default(true) @map("is_public") // 公开/内部
+  isSystem    Boolean   @default(false) @map("is_system") // 是否系统日志
+
+  // 编辑历史
+  edited      Boolean   @default(false)
+  editedAt    DateTime? @map("edited_at") @db.Timestamptz(6)
+  previousContent String? @map("previous_content") @db.Text
+
+  // 创建者信息（JSON快照）
+  creatorSnapshot Json  @map("creator_snapshot")
+
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@index([createdAt])
+  @@map("ticket_logs")
+}
+
+// 工单附件表
+model TicketAttachment {
+  id          BigInt    @id @default(autoincrement()) @map("attachment_id")
+  ticketId    BigInt    @map("ticket_id")
+  fileName    String    @map("file_name") @db.VarChar(255)
+  fileSize    BigInt    @map("file_size")
+  mimeType    String    @map("mime_type") @db.VarChar(100)
+  filePath    String    @map("file_path") @db.VarChar(500)
+
+  // 上传者信息（JSON快照）
+  uploaderSnapshot Json @map("uploader_snapshot")
+
+  uploadedAt  DateTime  @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  ticket      Ticket    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId])
+  @@map("ticket_attachments")
 }

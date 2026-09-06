@@ -96,12 +96,8 @@ export class AuthService {
 
     // 检查账号是否被锁定
     if (user.lockedUntil && new Date() < user.lockedUntil) {
-      const remainingTime = Math.ceil(
-        (user.lockedUntil.getTime() - new Date().getTime()) / 60000,
-      );
-      throw new UnauthorizedException(
-        `账号已锁定，请${remainingTime}分钟后再试`,
-      );
+      const remainingTime = Math.ceil((user.lockedUntil.getTime() - new Date().getTime()) / 60000);
+      throw new UnauthorizedException(`账号已锁定，请${remainingTime}分钟后再试`);
     }
 
     // 验证密码
