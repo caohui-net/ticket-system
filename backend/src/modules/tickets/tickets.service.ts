@@ -5,6 +5,7 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { QueryTicketsDto } from './dto/query-tickets.dto';
 import { TicketStatus } from '@prisma/client';
 import { CurrentUser } from './interfaces/current-user.interface';
+import { NotificationService } from '../notification/notification.service';
 
 /**
  * 工单服务
@@ -12,7 +13,10 @@ import { CurrentUser } from './interfaces/current-user.interface';
  */
 @Injectable()
 export class TicketsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationService: NotificationService,
+  ) {}
 
   /**
    * 创建工单
@@ -47,6 +51,11 @@ export class TicketsService {
           },
         },
       },
+    });
+
+    // 发送工单创建通知（异步，不阻塞）
+    this.notificationService.notifyTicketCreated(ticket).catch((error) => {
+      console.error('发送工单创建通知失败:', error);
     });
 
     return ticket;
@@ -325,6 +334,11 @@ export class TicketsService {
       },
     });
 
+    // 发送工单分配通知（异步，不阻塞）
+    this.notificationService.notifyTicketAssigned(updatedTicket, assignee).catch((error) => {
+      console.error('发送工单分配通知失败:', error);
+    });
+
     return updatedTicket;
   }
 
@@ -403,6 +417,13 @@ export class TicketsService {
         },
       },
     });
+
+    // 发送状态变更通知（异步，不阻塞）
+    this.notificationService
+      .notifyTicketStatusChanged(updatedTicket, oldStatus, newStatus)
+      .catch((error) => {
+        console.error('发送状态变更通知失败:', error);
+      });
 
     return updatedTicket;
   }

@@ -89,21 +89,81 @@ src/
 ├── config/             # 配置模块
 ├── modules/            # 业务模块
 │   ├── auth/          # 认证授权
-│   ├── user/          # 用户管理
-│   ├── ticket/        # 工单管理
-│   ├── assignment/    # 工单分配
-│   ├── processing/    # 工单处理
-│   ├── review/        # 工单审核
-│   ├── notification/  # 通知
-│   ├── file/          # 文件管理
-│   ├── report/        # 统计报表
-│   └── log/           # 操作日志
+│   ├── permissions/   # 权限管理 ⭐ NEW
+│   ├── tickets/       # 工单管理
+│   ├── logs/          # 工单日志(评论)
+│   ├── attachments/   # 附件管理
+│   ├── statistics/    # 统计报表
+│   └── notification/  # 通知系统
 ├── prisma/            # Prisma配置
 │   ├── schema.prisma  # 数据库Schema
 │   └── migrations/    # 数据库迁移
 ├── app.module.ts      # 根模块
 └── main.ts            # 应用入口
 ```
+
+## 权限管理系统 ⭐
+
+本系统采用基于RBAC的细粒度权限控制，权限格式为 `resource:action`。
+
+### 快速开始
+
+```bash
+# 1. 初始化权限数据
+npx ts-node src/modules/permissions/seeds/permissions.seed.ts
+
+# 2. 验证权限系统
+npm test -- permissions.service.spec.ts
+
+# 3. 查看API文档
+# 启动服务后访问: http://localhost:3000/api/docs
+```
+
+### 使用示例
+
+```typescript
+import { Controller, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../permissions/guards/permissions.guard';
+import { RequirePermissions } from '../permissions/decorators/require-permissions.decorator';
+
+@Controller('tickets')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class TicketsController {
+  @Post()
+  @RequirePermissions('ticket:create')
+  create() {
+    // 只有拥有 ticket:create 权限的用户才能访问
+  }
+}
+```
+
+### 预置权限
+
+- **工单**: `ticket:create/read/update/delete/assign/close`
+- **评论**: `comment:create/read/update/delete`
+- **用户**: `user:manage/read`
+- **角色**: `role:manage/read`
+- **统计**: `statistics:view`
+- **超级权限**: `*:*` (所有权限)
+
+### 角色配置
+
+| 角色 | 说明 | 权限数 |
+|-----|------|-------|
+| ADMIN | 系统管理员 | 所有权限 |
+| CREATOR | 工单创建者 | 7个 |
+| HANDLER | 处理人员 | 10个 |
+| REPORTER | 报表查看者 | 3个 |
+| REVIEWER | 部门主管 | 9个 |
+| APPROVER | 分管领导 | 7个 |
+
+### 详细文档
+
+- 📘 完整文档: `docs/权限管理模块文档.md`
+- 📗 集成指南: `src/modules/permissions/README.md`
+- 📝 快速参考: `docs/权限管理快速参考.md`
+- ✅ 集成检查: `docs/权限管理集成检查清单.md`
 
 ## 开发规范
 

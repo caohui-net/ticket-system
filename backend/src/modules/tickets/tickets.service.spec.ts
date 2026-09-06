@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TicketsService } from './tickets.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { TicketStatus, TicketPriority, TicketType } from '@prisma/client';
 
 describe('TicketsService', () => {
   let service: TicketsService;
+  let notificationService: NotificationService;
 
   const mockPrismaService = {
     ticket: {
@@ -21,6 +23,12 @@ describe('TicketsService', () => {
     ticketLog: {
       create: jest.fn(),
     },
+  };
+
+  const mockNotificationService = {
+    notifyTicketCreated: jest.fn().mockResolvedValue(undefined),
+    notifyTicketAssigned: jest.fn().mockResolvedValue(undefined),
+    notifyTicketStatusChanged: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockCurrentUser = {
@@ -62,10 +70,15 @@ describe('TicketsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: NotificationService,
+          useValue: mockNotificationService,
+        },
       ],
     }).compile();
 
     service = module.get<TicketsService>(TicketsService);
+    notificationService = module.get<NotificationService>(NotificationService);
 
     jest.clearAllMocks();
   });

@@ -30,6 +30,8 @@ model User {
 
   userRoles            UserRole[]
   assignedTickets      Ticket[]   @relation("AssignedTickets")
+  notifications        Notification[]
+  notificationSetting  NotificationSetting?
 
   @@map("users")
 }
@@ -45,9 +47,37 @@ model Role {
   createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  userRoles   UserRole[]
+  userRoles        UserRole[]
+  rolePermissions  RolePermission[]
 
   @@map("roles")
+}
+
+// 权限表
+model Permission {
+  id          BigInt   @id @default(autoincrement()) @map("permission_id")
+  resource    String   @db.VarChar(50) // ticket, comment, user, role, statistics
+  action      String   @db.VarChar(50) // create, read, update, delete, assign, close, manage, view
+  code        String   @unique @db.VarChar(100) // resource:action (如 ticket:create)
+  description String?  @db.VarChar(200)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+// 角色权限关联表
+model RolePermission {
+  roleId       BigInt
+  permissionId BigInt
+
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
 }
 
 model UserRole {
@@ -173,4 +203,60 @@ model TicketAttachment {
 
   @@index([ticketId])
   @@map("ticket_attachments")
+}
+
+// 通知类型枚举
+enum NotificationType {
+  TICKET_CREATED        // 工单创建
+  TICKET_ASSIGNED       // 工单分配
+  TICKET_STATUS_CHANGED // 状态变更
+  TICKET_COMMENTED      // 新评论
+  MENTION               // @提及
+}
+
+// 通知表
+model Notification {
+  id        BigInt           @id @default(autoincrement()) @map("notification_id")
+  userId    BigInt           @map("user_id")
+  type      NotificationType
+  title     String           @db.VarChar(200)
+  content   String           @db.Text
+  link      String?          @db.VarChar(500)
+  read      Boolean          @default(false)
+  readAt    DateTime?        @map("read_at") @db.Timestamptz(6)
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// 通知设置表
+model NotificationSetting {
+  id                    BigInt  @id @default(autoincrement()) @map("setting_id")
+  userId                BigInt  @unique @map("user_id")
+
+  // 应用内通知开关
+  inAppEnabled          Boolean @default(true) @map("in_app_enabled")
+  ticketCreated         Boolean @default(true) @map("ticket_created")
+  ticketAssigned        Boolean @default(true) @map("ticket_assigned")
+  ticketStatusChanged   Boolean @default(true) @map("ticket_status_changed")
+  ticketCommented       Boolean @default(true) @map("ticket_commented")
+  mention               Boolean @default(true)
+
+  // 邮件通知开关
+  emailEnabled          Boolean @default(false) @map("email_enabled")
+  emailTicketCreated    Boolean @default(false) @map("email_ticket_created")
+  emailTicketAssigned   Boolean @default(true) @map("email_ticket_assigned")
+  emailTicketStatusChanged Boolean @default(false) @map("email_ticket_status_changed")
+  emailTicketCommented  Boolean @default(false) @map("email_ticket_commented")
+
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
 }
