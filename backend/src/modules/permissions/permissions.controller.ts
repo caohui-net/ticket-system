@@ -31,7 +31,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
 @ApiTags('权限管理')
 @ApiBearerAuth()
-@Controller('api/v1/permissions')
+@Controller('permissions')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
@@ -90,7 +90,7 @@ export class PermissionsController {
 
 @ApiTags('角色权限管理')
 @ApiBearerAuth()
-@Controller('api/v1/roles')
+@Controller('roles')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class RolePermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
@@ -157,7 +157,7 @@ export class RolePermissionsController {
 
 @ApiTags('用户权限查询')
 @ApiBearerAuth()
-@Controller('api/v1/users')
+@Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UserPermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}

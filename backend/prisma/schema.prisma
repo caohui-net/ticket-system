@@ -33,6 +33,23 @@ model User {
   notifications        Notification[]
   notificationSetting  NotificationSetting?
 
+  // 审批流程关联（方案B第一阶段新增）
+  approvalSteps        ApprovalStep[]  @relation("ApprovalSteps")
+  budgetsCreated       Budget[]        @relation("BudgetCreator")
+  budgetsReviewed      Budget[]        @relation("BudgetReviewer")
+  projectsCreated      Project[]       @relation("ProjectCreator")
+
+  // 签证和结算关联
+  visasCreated         Visa[]          @relation("VisaCreator")
+  visasReviewed        Visa[]          @relation("VisaReviewer")
+  settlementsCreated   Settlement[]    @relation("SettlementCreator")
+  settlementsReviewed  Settlement[]    @relation("SettlementReviewer")
+
+  // 新增字段（方案B第一阶段）
+  employeeId           String?         @map("employee_id") @db.VarChar(20)  // 工号
+  isExternal           Boolean         @default(false) @map("is_external")  // 是否外部用户（乙方）
+  organization         String?         @db.VarChar(100)  // 所属单位（乙方）
+
   @@map("users")
 }
 
@@ -154,9 +171,24 @@ model Ticket {
   logs        TicketLog[]
   attachments TicketAttachment[]
 
+  // 审批流程关联（方案B第一阶段新增）
+  approvalFlow ApprovalFlow?
+  budget       Budget?
+  project      Project?
+
+  // 签证和结算关联
+  visa         Visa?
+  settlement   Settlement?
+
+  // 新增字段（方案B第一阶段）
+  location     String?         @db.VarChar(200)  // 报修位置
+  currentPhase Phase           @default(REPAIR) @map("current_phase")  // 当前阶段
+  currentStep  Int?            @map("current_step")  // 当前步骤
+
   @@index([status])
   @@index([assigneeId])
   @@index([createdAt])
+  @@index([currentPhase])
   @@map("tickets")
 }
 
@@ -259,4 +291,284 @@ model NotificationSetting {
   user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_settings")
+}
+
+// ============================================
+// 审批流程相关表（方案B第一阶段）
+// ============================================
+
+// 审批类型枚举
+enum ApprovalType {
+  REPAIR_REVIEW           // 报修审核（副主任）
+  BUDGET_REVIEW           // 预算审核（副主任）
+  PROJECT_APPROVAL        // 立项审批（三级）
+  VISA_APPROVAL_LOW       // 签证审批-低额（单级）
+  VISA_APPROVAL_MEDIUM    // 签证审批-中额（两级）
+  VISA_APPROVAL_HIGH      // 签证审批-高额（三级）
+  SETTLEMENT_APPROVAL_LOW    // 结算审批-低额（单级）
+  SETTLEMENT_APPROVAL_MEDIUM // 结算审批-中额（两级）
+  SETTLEMENT_APPROVAL_HIGH   // 结算审批-高额（三级）
+}
+
+// 审批流程状态枚举
+enum FlowStatus {
+  PENDING     // 进行中
+  APPROVED    // 已通过
+  REJECTED    // 已驳回
+  CANCELLED   // 已取消
+}
+
+// 审批步骤状态枚举
+enum StepStatus {
+  PENDING     // 待审批
+  APPROVED    // 已通过
+  REJECTED    // 已驳回
+  SKIPPED     // 已跳过
+}
+
+// 审批步骤类型枚举（方案B第二阶段）
+enum StepType {
+  SEQUENTIAL   // 顺序审批（默认）
+  PARALLEL     // 并行审批
+  CONDITIONAL  // 条件分支
+}
+
+// 预算状态枚举
+enum BudgetStatus {
+  DRAFT           // 草稿
+  SUBMITTED       // 已提交
+  APPROVED        // 已批准
+  REJECTED        // 已驳回
+}
+
+// 立项状态枚举
+enum ProjectStatus {
+  DRAFT           // 草稿
+  PENDING         // 待审批
+  APPROVED        // 已批准
+  REJECTED        // 已驳回
+  IN_PROGRESS     // 施工中（第二阶段）
+  COMPLETED       // 已完成（第二阶段）
+}
+
+// 工单阶段枚举
+enum Phase {
+  REPAIR      // 报修阶段
+  BUDGET      // 预算阶段
+  PROJECT     // 立项阶段
+  EXECUTION   // 执行阶段
+  CERTIFICATE // 签证阶段（第二阶段）
+  ACCEPTANCE  // 验收阶段（第二阶段）
+  SETTLEMENT  // 结算阶段
+  COMPLETED   // 已完成
+}
+
+// 签证类型枚举
+enum VisaType {
+  COST_INCREASE    // 费用增加
+  DURATION_EXTEND  // 工期延长
+  SCOPE_CHANGE     // 范围变更
+}
+
+// 签证状态枚举
+enum VisaStatus {
+  DRAFT      // 草稿
+  SUBMITTED  // 已提交
+  APPROVED   // 已批准
+  REJECTED   // 已驳回
+}
+
+// 结算状态枚举
+enum SettlementStatus {
+  DRAFT      // 草稿
+  SUBMITTED  // 已提交
+  APPROVED   // 已批准
+  REJECTED   // 已驳回
+  PAID       // 已支付
+}
+
+// 审批流程表
+model ApprovalFlow {
+  id              BigInt         @id @default(autoincrement()) @map("approval_flow_id")
+  ticketId        BigInt         @unique @map("ticket_id")
+  type            ApprovalType   // REPAIR_REVIEW, BUDGET_REVIEW, PROJECT_APPROVAL
+  currentStep     Int            @default(1) @map("current_step")
+  totalSteps      Int            @map("total_steps")
+  status          FlowStatus     @default(PENDING)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime       @updatedAt @map("updated_at") @db.Timestamptz(6)
+  completedAt     DateTime?      @map("completed_at") @db.Timestamptz(6)
+
+  ticket          Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  steps           ApprovalStep[]
+
+  @@index([ticketId])
+  @@index([status])
+  @@map("approval_flows")
+}
+
+// 审批步骤表（方案B第二阶段扩展）
+model ApprovalStep {
+  id                BigInt         @id @default(autoincrement()) @map("approval_step_id")
+  flowId            BigInt         @map("flow_id")
+  stepNumber        Int            @map("step_number")  // 1,2,3...
+  stepName          String         @map("step_name") @db.VarChar(100)  // "一级审核"/"二级审核"
+  stepType          StepType       @default(SEQUENTIAL) @map("step_type")  // 步骤类型
+  approverRole      String?        @map("approver_role") @db.VarChar(50)  // 审批角色code（顺序审批）
+  approverId        BigInt?        @map("approver_id")  // 实际审批人ID（顺序审批）
+  approvers         Json?          // 并行审批时的审批人列表 [userId1, userId2, ...]
+  approvedBy        Json?          @map("approved_by")  // 已审批记录 [{userId, decision, comment, time}]
+  requireAllApprove Boolean        @default(true) @map("require_all_approve")  // 并行审批是否需要全部通过
+  condition         Json?          // 条件配置 {field: "amount", operator: ">", value: 10000}
+  status            StepStatus     @default(PENDING)
+  comment           String?        @db.Text  // 审批意见（顺序审批）
+  approvedAt        DateTime?      @map("approved_at") @db.Timestamptz(6)
+  rejectedAt        DateTime?      @map("rejected_at") @db.Timestamptz(6)
+  createdAt         DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  flow              ApprovalFlow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
+  approver          User?          @relation("ApprovalSteps", fields: [approverId], references: [id], onDelete: SetNull)
+
+  @@unique([flowId, stepNumber], map: "unique_flow_step")
+  @@index([flowId, stepNumber])
+  @@index([status])
+  @@index([approverRole])
+  @@map("approval_steps")
+}
+
+// 预算表（简化版）
+model Budget {
+  id              BigInt         @id @default(autoincrement()) @map("budget_id")
+  ticketId        BigInt         @unique @map("ticket_id")
+  amount          Decimal        @db.Decimal(10, 2)  // 预算金额
+  description     String         @db.Text  // 预算说明
+  attachments     String?        @db.Text  // JSON数组，预算文件URL
+  status          BudgetStatus   @default(DRAFT)
+  createdBy       BigInt         @map("created_by")  // 乙方人员ID
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt     DateTime?      @map("submitted_at") @db.Timestamptz(6)
+  reviewedBy      BigInt?        @map("reviewed_by")  // 副主任ID
+  reviewedAt      DateTime?      @map("reviewed_at") @db.Timestamptz(6)
+  reviewComment   String?        @map("review_comment") @db.Text
+
+  ticket          Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  creator         User           @relation("BudgetCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  reviewer        User?          @relation("BudgetReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("budgets")
+}
+
+// 立项表
+model Project {
+  id                  BigInt         @id @default(autoincrement()) @map("project_id")
+  ticketId            BigInt         @unique @map("ticket_id")
+  title               String         @db.VarChar(200)
+  plannedStartDate    DateTime       @map("planned_start_date") @db.Date  // 计划开工日期
+  plannedDuration     Int            @map("planned_duration")  // 计划工期(天)
+  contractorName      String         @map("contractor_name") @db.VarChar(100)  // 乙方名称
+  description         String?        @db.Text  // 立项说明
+  status              ProjectStatus  @default(DRAFT)
+  createdBy           BigInt         @map("created_by")  // 副主任/主管
+  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt         DateTime?      @map("submitted_at") @db.Timestamptz(6)
+  approvedAt          DateTime?      @map("approved_at") @db.Timestamptz(6)
+
+  ticket              Ticket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  creator             User           @relation("ProjectCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  visas               Visa[]
+  settlements         Settlement[]
+
+  @@index([ticketId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("projects")
+}
+
+// ============================================
+// 签证和结算表（方案B第二阶段）
+// ============================================
+
+// 签证表（执行过程中的变更）
+model Visa {
+  id            BigInt      @id @default(autoincrement()) @map("visa_id")
+  ticketId      BigInt      @unique @map("ticket_id")
+  projectId     BigInt      @map("project_id")
+  title         String      @db.VarChar(200)
+  reason        String      @db.Text  // 签证原因
+  changeType    VisaType    @map("change_type")  // 变更类型：费用增加、工期延长、范围变更
+  originalValue Decimal?    @map("original_value") @db.Decimal(12, 2)  // 原值（费用或工期）
+  changedValue  Decimal     @map("changed_value") @db.Decimal(12, 2)  // 变更后的值
+  description   String      @db.Text
+  attachments   String?     @db.Text  // JSON数组
+  status        VisaStatus  @default(SUBMITTED)
+  createdBy     BigInt      @map("created_by")
+  reviewedBy    BigInt?     @map("reviewed_by")
+  reviewedAt    DateTime?   @map("reviewed_at") @db.Timestamptz(6)
+  reviewComment String?     @db.VarChar(500) @map("review_comment")
+  submittedAt   DateTime    @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ticket        Ticket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator       User        @relation("VisaCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  reviewer      User?       @relation("VisaReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("visas")
+}
+
+// 结算表
+model Settlement {
+  id               BigInt           @id @default(autoincrement()) @map("settlement_id")
+  ticketId         BigInt           @unique @map("ticket_id")
+  projectId        BigInt           @map("project_id")
+  totalAmount      Decimal          @db.Decimal(12, 2) @map("total_amount")  // 结算总金额
+  originalAmount   Decimal          @db.Decimal(12, 2) @map("original_amount")  // 原预算金额
+  visaAmount       Decimal          @default(0) @db.Decimal(12, 2) @map("visa_amount")  // 签证增加金额
+  description      String           @db.Text
+  attachments      String?          @db.Text  // JSON数组（发票、验收报告等）
+  status           SettlementStatus @default(SUBMITTED)
+  createdBy        BigInt           @map("created_by")
+  reviewedBy       BigInt?          @map("reviewed_by")
+  reviewedAt       DateTime?        @map("reviewed_at") @db.Timestamptz(6)
+  reviewComment    String?          @db.VarChar(500) @map("review_comment")
+  submittedAt      DateTime         @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ticket           Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator          User             @relation("SettlementCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  reviewer         User?            @relation("SettlementReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+
+  @@index([ticketId])
+  @@index([projectId])
+  @@index([status])
+  @@index([createdBy])
+  @@map("settlements")
+}
+
+// ============================================
+// 审批模板表（方案B第二阶段）
+// ============================================
+
+// 审批模板表
+model ApprovalTemplate {
+  id          BigInt   @id @default(autoincrement()) @map("template_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.VarChar(500)
+  type        String   @db.VarChar(50)  // 审批类型标识
+  isActive    Boolean  @default(true) @map("is_active")
+  config      Json     // 模板配置（JSON格式）
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("approval_templates")
 }

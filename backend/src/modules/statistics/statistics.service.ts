@@ -444,4 +444,451 @@ export class StatisticsService {
       return remainingHours > 0 ? `${days}天${remainingHours}小时` : `${days}天`;
     }
   }
+
+  /**
+   * 获取时间范围
+   */
+  private getTimeRange(timeRange?: TimeRange): { startDate: Date; endDate: Date } {
+    const endDate = new Date();
+    let startDate: Date;
+
+    switch (timeRange) {
+      case 'today':
+        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+        break;
+      case 'week':
+        startDate = new Date(endDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'month':
+        startDate = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        break;
+      case 'quarter':
+        const currentMonth = endDate.getMonth();
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+        startDate = new Date(endDate.getFullYear(), quarterStartMonth, 1);
+        break;
+      case 'year':
+        startDate = new Date(endDate.getFullYear(), 0, 1);
+        break;
+      default:
+        // 默认最近30天
+        startDate = new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    return { startDate, endDate };
+  }
+
+  /**
+   * 获取审批效率统计
+   */
+  async getApprovalEfficiency(timeRange?: TimeRange) {
+    const { startDate, endDate } = this.getTimeRange(timeRange);
+
+    // 查询已完成的审批流程
+    const completedFlows = await this.prisma.approvalFlow.findMany({
+      where: {
+        status: 'APPROVED',
+        updatedAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        steps: {
+          orderBy: { stepNumber: 'asc' },
+        },
+      },
+    });
+
+    if (completedFlows.length === 0) {
+      return {
+        totalFlows: 0,
+        avgDuration: 0,
+        avgDurationFormatted: '0小时',
+        approvalRate: 0,
+        byType: {},
+      };
+    }
+
+    // 计算每个流程的耗时
+    const durations = completedFlows.map((flow) => {
+      const firstStep = flow.steps[0];
+      const lastStep = flow.steps[flow.steps.length - 1];
+
+      if (!firstStep?.createdAt || !lastStep?.approvedAt) {
+        return 0;
+      }
+
+      const duration =
+        (new Date(lastStep.approvedAt).getTime() -
+          new Date(firstStep.createdAt).getTime()) /
+        (1000 * 60 * 60); // 转换为小时
+      return duration;
+    });
+
+    const avgDuration = durations.reduce((a, b) => a + b, 0) / durations.length;
+
+    // 按类型统计
+    const byType = {};
+    const typeGroups = {};
+
+    completedFlows.forEach((flow) => {
+      if (!typeGroups[flow.type]) {
+        typeGroups[flow.type] = [];
+      }
+
+      const firstStep = flow.steps[0];
+      const lastStep = flow.steps[flow.steps.length - 1];
+
+      if (firstStep?.createdAt && lastStep?.approvedAt) {
+        const duration =
+          (new Date(lastStep.approvedAt).getTime() -
+            new Date(firstStep.createdAt).getTime()) /
+          (1000 * 60 * 60);
+        typeGroups[flow.type].push(duration);
+      }
+    });
+
+    Object.keys(typeGroups).forEach((type) => {
+      const typeDurations = typeGroups[type];
+      byType[type] = {
+        count: typeDurations.length,
+        avgDuration:
+          typeDurations.reduce((a, b) => a + b, 0) / typeDurations.length,
+        avgDurationFormatted: this.formatDuration(
+          typeDurations.reduce((a, b) => a + b, 0) / typeDurations.length,
+        ),
+      };
+    });
+
+    // 计算通过率
+    const totalFlows = await this.prisma.approvalFlow.count({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    const approvalRate = totalFlows > 0 ? (completedFlows.length / totalFlows) * 100 : 0;
+
+    return {
+      totalFlows: completedFlows.length,
+      avgDuration,
+      avgDurationFormatted: this.formatDuration(avgDuration),
+      approvalRate: Math.round(approvalRate * 10) / 10,
+      byType,
+    };
+  }
+
+  /**
+   * 获取各角色审批量统计
+   */
+  async getApprovalByRole(timeRange?: TimeRange) {
+    const { startDate, endDate } = this.getTimeRange(timeRange);
+
+    // 查询所有审批步骤
+    const approvalSteps = await this.prisma.approvalStep.findMany({
+      where: {
+        status: { in: ['APPROVED', 'REJECTED'] },
+        approvedAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        approver: {
+          include: {
+            userRoles: {
+              include: {
+                role: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 按角色分组统计
+    const roleStats = {};
+
+    approvalSteps.forEach((step) => {
+      if (!step.approver) return;
+
+      step.approver.userRoles.forEach((ur) => {
+        const roleCode = ur.role.code;
+        const roleName = ur.role.name;
+
+        if (!roleStats[roleCode]) {
+          roleStats[roleCode] = {
+            roleCode,
+            roleName,
+            totalApprovals: 0,
+            approved: 0,
+            rejected: 0,
+            approvalRate: 0,
+          };
+        }
+
+        roleStats[roleCode].totalApprovals++;
+        if (step.status === 'APPROVED') {
+          roleStats[roleCode].approved++;
+        } else if (step.status === 'REJECTED') {
+          roleStats[roleCode].rejected++;
+        }
+      });
+    });
+
+    // 计算通过率
+    Object.values(roleStats).forEach((stat: any) => {
+      stat.approvalRate =
+        stat.totalApprovals > 0
+          ? Math.round((stat.approved / stat.totalApprovals) * 1000) / 10
+          : 0;
+    });
+
+    return Object.values(roleStats);
+  }
+
+  /**
+   * 获取工单各阶段耗时分析
+   */
+  async getPhaseTimeAnalysis(timeRange?: TimeRange) {
+    const { startDate, endDate } = this.getTimeRange(timeRange);
+
+    // 查询已完成的工单
+    const tickets = await this.prisma.ticket.findMany({
+      where: {
+        status: { in: ['RESOLVED', 'CLOSED'] },
+        updatedAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        approvalFlow: {
+          include: {
+            steps: {
+              orderBy: { stepNumber: 'asc' },
+            },
+          },
+        },
+        budget: true,
+        project: true,
+      },
+    });
+
+    if (tickets.length === 0) {
+      return {
+        totalTickets: 0,
+        avgTotalDuration: 0,
+        phases: {},
+      };
+    }
+
+    // 统计各阶段耗时
+    const phaseData = {
+      REPAIR: [],
+      BUDGET: [],
+      PROJECT: [],
+      EXECUTION: [],
+    };
+
+    tickets.forEach((ticket) => {
+      // 计算报修阶段：创建到审批完成
+      if (ticket.approvalFlow?.status === 'APPROVED' && ticket.approvalFlow.type === 'REPAIR_REVIEW') {
+        const repairStep = ticket.approvalFlow.steps[0];
+        if (repairStep?.approvedAt) {
+          const duration =
+            (new Date(repairStep.approvedAt).getTime() -
+              new Date(ticket.createdAt).getTime()) /
+            (1000 * 60 * 60);
+          phaseData.REPAIR.push(duration);
+        }
+      }
+
+      // 计算预算阶段
+      if (ticket.budget?.reviewedAt && ticket.budget.submittedAt) {
+        const duration =
+          (new Date(ticket.budget.reviewedAt).getTime() -
+            new Date(ticket.budget.submittedAt).getTime()) /
+          (1000 * 60 * 60);
+        phaseData.BUDGET.push(duration);
+      }
+
+      // 计算立项阶段
+      if (ticket.project) {
+        const projectFlow = ticket.approvalFlow;
+        if (projectFlow?.type === 'PROJECT_APPROVAL' && projectFlow.status === 'APPROVED') {
+          const lastStep = projectFlow.steps[projectFlow.steps.length - 1];
+          if (lastStep?.approvedAt) {
+            const duration =
+              (new Date(lastStep.approvedAt).getTime() -
+                new Date(ticket.project.createdAt).getTime()) /
+              (1000 * 60 * 60);
+            phaseData.PROJECT.push(duration);
+          }
+        }
+      }
+    });
+
+    // 计算各阶段平均耗时
+    const phases = {};
+    Object.keys(phaseData).forEach((phase) => {
+      const durations = phaseData[phase];
+      if (durations.length > 0) {
+        const avg = durations.reduce((a, b) => a + b, 0) / durations.length;
+        phases[phase] = {
+          count: durations.length,
+          avgDuration: avg,
+          avgDurationFormatted: this.formatDuration(avg),
+          minDuration: Math.min(...durations),
+          maxDuration: Math.max(...durations),
+        };
+      }
+    });
+
+    return {
+      totalTickets: tickets.length,
+      phases,
+    };
+  }
+
+  /**
+   * 获取审批趋势数据
+   */
+  async getApprovalTrend(days: number = 30) {
+    const endDate = new Date();
+    const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+
+    const approvalFlows = await this.prisma.approvalFlow.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+        status: true,
+        type: true,
+      },
+    });
+
+    // 按日期分组
+    const trendData = {};
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const dateStr = date.toISOString().split('T')[0];
+      trendData[dateStr] = {
+        date: dateStr,
+        total: 0,
+        approved: 0,
+        rejected: 0,
+        pending: 0,
+      };
+    }
+
+    approvalFlows.forEach((flow) => {
+      const dateStr = new Date(flow.createdAt).toISOString().split('T')[0];
+      if (trendData[dateStr]) {
+        trendData[dateStr].total++;
+        if (flow.status === 'APPROVED') {
+          trendData[dateStr].approved++;
+        } else if (flow.status === 'REJECTED') {
+          trendData[dateStr].rejected++;
+        } else {
+          trendData[dateStr].pending++;
+        }
+      }
+    });
+
+    return Object.values(trendData);
+  }
+
+  /**
+   * 获取部门/类型/优先级统计
+   */
+  async getTicketAnalysisByDimension(
+    dimension: 'department' | 'type' | 'priority',
+    timeRange?: TimeRange,
+  ) {
+    const { startDate, endDate } = this.getTimeRange(timeRange);
+
+    let groupBy: any;
+    let labelField: string;
+
+    switch (dimension) {
+      case 'department':
+        // 按部门统计需要Join用户表
+        const ticketsWithCreator = await this.prisma.ticket.findMany({
+          where: {
+            createdAt: {
+              gte: startDate,
+              lte: endDate,
+            },
+          },
+          include: {
+            approvalFlow: true,
+          },
+        });
+
+        const deptStats = {};
+        ticketsWithCreator.forEach((ticket) => {
+          const creator = ticket.creatorSnapshot as any;
+          const dept = creator?.department || '未知部门';
+
+          if (!deptStats[dept]) {
+            deptStats[dept] = {
+              label: dept,
+              total: 0,
+              approved: 0,
+              rejected: 0,
+              pending: 0,
+            };
+          }
+
+          deptStats[dept].total++;
+          if (ticket.approvalFlow) {
+            if (ticket.approvalFlow.status === 'APPROVED') {
+              deptStats[dept].approved++;
+            } else if (ticket.approvalFlow.status === 'REJECTED') {
+              deptStats[dept].rejected++;
+            } else {
+              deptStats[dept].pending++;
+            }
+          }
+        });
+
+        return Object.values(deptStats);
+
+      case 'type':
+        groupBy = ['type'];
+        labelField = 'type';
+        break;
+
+      case 'priority':
+        groupBy = ['priority'];
+        labelField = 'priority';
+        break;
+    }
+
+    const grouped = await this.prisma.ticket.groupBy({
+      by: groupBy,
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _count: true,
+    });
+
+    return grouped.map((item) => ({
+      label: item[labelField],
+      total: item._count,
+    }));
+  }
 }

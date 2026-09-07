@@ -15,6 +15,7 @@ import { TicketsService } from './tickets.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { QueryTicketsDto } from './dto/query-tickets.dto';
+import { ReviewRepairDto } from './dto/review-repair.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TicketStatus } from '@prisma/client';
@@ -27,7 +28,7 @@ import { CurrentUser as CurrentUserType } from './interfaces/current-user.interf
 @ApiTags('工单管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/tickets')
+@Controller('tickets')
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
@@ -129,5 +130,23 @@ export class TicketsController {
     @CurrentUser() currentUser: CurrentUserType,
   ) {
     return this.ticketsService.changeStatus(id, status, currentUser);
+  }
+
+  /**
+   * 副主任审核报修
+   */
+  @Post(':id/review')
+  @ApiOperation({ summary: '副主任审核报修单' })
+  @ApiParam({ name: 'id', description: '工单ID', example: 1 })
+  @ApiResponse({ status: 200, description: '审核成功' })
+  @ApiResponse({ status: 403, description: '无权限审核' })
+  @ApiResponse({ status: 404, description: '工单不存在' })
+  @ApiResponse({ status: 401, description: '未授权' })
+  reviewRepair(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ReviewRepairDto,
+    @CurrentUser() currentUser: CurrentUserType,
+  ) {
+    return this.ticketsService.reviewRepair(id, dto, currentUser);
   }
 }

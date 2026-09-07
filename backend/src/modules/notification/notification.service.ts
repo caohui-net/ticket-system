@@ -495,4 +495,212 @@ export class NotificationService {
       this.logger.error(`发送@提及通知失败: ${error.message}`, error.stack);
     }
   }
+
+  // ==================== 签证相关通知 ====================
+
+  /**
+   * 签证提交通知
+   */
+  async notifyVisaSubmitted(ticketId: number, submitterId: number) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+      });
+
+      if (!ticket) return;
+
+      // 通知副主任角色用户
+      const viceDirectors = await this.prisma.user.findMany({
+        where: {
+          userRoles: {
+            some: {
+              role: { code: 'VICE_DIRECTOR' },
+            },
+          },
+          status: 1,
+        },
+        select: { id: true },
+      });
+
+      for (const user of viceDirectors) {
+        await this.createNotification(
+          user.id,
+          NotificationType.TICKET_STATUS_CHANGED,
+          `签证待审核 #${ticket.number}`,
+          `工单"${ticket.title}"提交了签证，待您审核`,
+          `/visas/ticket/${ticket.id}`,
+        );
+      }
+
+      this.logger.log(`签证提交通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送签证提交通知失败: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * 签证批准通知
+   */
+  async notifyVisaApproved(ticketId: number, approverId: number) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+        include: {
+          visa: {
+            include: { creator: true },
+          },
+        },
+      });
+
+      if (!ticket || !ticket.visa) return;
+
+      // 通知签证创建人
+      await this.createNotification(
+        ticket.visa.creator.id,
+        NotificationType.TICKET_STATUS_CHANGED,
+        `签证已批准 #${ticket.number}`,
+        `您提交的工单"${ticket.title}"的签证已通过审批`,
+        `/visas/ticket/${ticket.id}`,
+      );
+
+      this.logger.log(`签证批准通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送签证批准通知失败: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * 签证驳回通知
+   */
+  async notifyVisaRejected(ticketId: number, reviewerId: number, reason: string) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+        include: {
+          visa: {
+            include: { creator: true },
+          },
+        },
+      });
+
+      if (!ticket || !ticket.visa) return;
+
+      // 通知签证创建人
+      await this.createNotification(
+        ticket.visa.creator.id,
+        NotificationType.TICKET_STATUS_CHANGED,
+        `签证已驳回 #${ticket.number}`,
+        `您提交的工单"${ticket.title}"的签证被驳回，原因：${reason}`,
+        `/visas/ticket/${ticket.id}`,
+      );
+
+      this.logger.log(`签证驳回通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送签证驳回通知失败: ${error.message}`, error.stack);
+    }
+  }
+
+  // ==================== 结算相关通知 ====================
+
+  /**
+   * 结算提交通知
+   */
+  async notifySettlementSubmitted(ticketId: number, submitterId: number) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+      });
+
+      if (!ticket) return;
+
+      // 通知财务角色用户
+      const financeUsers = await this.prisma.user.findMany({
+        where: {
+          userRoles: {
+            some: {
+              role: { code: 'FINANCE' },
+            },
+          },
+          status: 1,
+        },
+        select: { id: true },
+      });
+
+      for (const user of financeUsers) {
+        await this.createNotification(
+          user.id,
+          NotificationType.TICKET_STATUS_CHANGED,
+          `结算待审核 #${ticket.number}`,
+          `工单"${ticket.title}"提交了结算，待您审核`,
+          `/settlements/ticket/${ticket.id}`,
+        );
+      }
+
+      this.logger.log(`结算提交通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送结算提交通知失败: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * 结算批准通知
+   */
+  async notifySettlementApproved(ticketId: number, approverId: number) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+        include: {
+          settlement: {
+            include: { creator: true },
+          },
+        },
+      });
+
+      if (!ticket || !ticket.settlement) return;
+
+      // 通知结算创建人
+      await this.createNotification(
+        ticket.settlement.creator.id,
+        NotificationType.TICKET_STATUS_CHANGED,
+        `结算已批准 #${ticket.number}`,
+        `您提交的工单"${ticket.title}"的结算已通过审批`,
+        `/settlements/ticket/${ticket.id}`,
+      );
+
+      this.logger.log(`结算批准通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送结算批准通知失败: ${error.message}`, error.stack);
+    }
+  }
+
+  /**
+   * 结算驳回通知
+   */
+  async notifySettlementRejected(ticketId: number, reviewerId: number, reason: string) {
+    try {
+      const ticket = await this.prisma.ticket.findUnique({
+        where: { id: BigInt(ticketId) },
+        include: {
+          settlement: {
+            include: { creator: true },
+          },
+        },
+      });
+
+      if (!ticket || !ticket.settlement) return;
+
+      // 通知结算创建人
+      await this.createNotification(
+        ticket.settlement.creator.id,
+        NotificationType.TICKET_STATUS_CHANGED,
+        `结算已驳回 #${ticket.number}`,
+        `您提交的工单"${ticket.title}"的结算被驳回，原因：${reason}`,
+        `/settlements/ticket/${ticket.id}`,
+      );
+
+      this.logger.log(`结算驳回通知已发送: #${ticket.number}`);
+    } catch (error) {
+      this.logger.error(`发送结算驳回通知失败: ${error.message}`, error.stack);
+    }
+  }
 }

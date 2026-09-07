@@ -1,13 +1,14 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Param } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { StatisticsService } from './statistics.service';
 import { QueryStatisticsDto, QueryTrendDto } from './dto/query-statistics.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { TimeRange } from './interfaces/statistics.interface';
 
 @ApiTags('统计报表')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/statistics')
+@Controller('statistics')
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
@@ -52,5 +53,53 @@ export class StatisticsController {
   @ApiOperation({ summary: '活跃用户统计' })
   async getActiveUsers() {
     return this.statisticsService.getActiveUsers();
+  }
+
+  /**
+   * 获取审批效率统计
+   */
+  @Get('approval/efficiency')
+  @ApiOperation({ summary: '审批效率统计' })
+  async getApprovalEfficiency(@Query('timeRange') timeRange?: TimeRange) {
+    return this.statisticsService.getApprovalEfficiency(timeRange);
+  }
+
+  /**
+   * 获取各角色审批量统计
+   */
+  @Get('approval/by-role')
+  @ApiOperation({ summary: '各角色审批量统计' })
+  async getApprovalByRole(@Query('timeRange') timeRange?: TimeRange) {
+    return this.statisticsService.getApprovalByRole(timeRange);
+  }
+
+  /**
+   * 获取工单各阶段耗时分析
+   */
+  @Get('approval/phase-time')
+  @ApiOperation({ summary: '工单各阶段耗时分析' })
+  async getPhaseTimeAnalysis(@Query('timeRange') timeRange?: TimeRange) {
+    return this.statisticsService.getPhaseTimeAnalysis(timeRange);
+  }
+
+  /**
+   * 获取审批趋势
+   */
+  @Get('approval/trend')
+  @ApiOperation({ summary: '审批趋势数据' })
+  async getApprovalTrend(@Query('days') days?: number) {
+    return this.statisticsService.getApprovalTrend(days ? parseInt(days as any) : 30);
+  }
+
+  /**
+   * 获取按维度统计
+   */
+  @Get('analysis/:dimension')
+  @ApiOperation({ summary: '按部门/类型/优先级统计' })
+  async getAnalysisByDimension(
+    @Param('dimension') dimension: 'department' | 'type' | 'priority',
+    @Query('timeRange') timeRange?: TimeRange,
+  ) {
+    return this.statisticsService.getTicketAnalysisByDimension(dimension, timeRange);
   }
 }

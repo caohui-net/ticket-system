@@ -27,7 +27,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 @ApiTags('通知管理')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
@@ -73,7 +73,7 @@ export class NotificationController {
 @ApiTags('通知设置')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('api/v1/notification-settings')
+@Controller('notification-settings')
 export class NotificationSettingController {
   constructor(private readonly notificationService: NotificationService) {}
 

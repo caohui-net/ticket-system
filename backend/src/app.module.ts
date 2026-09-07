@@ -8,6 +8,11 @@ import { AttachmentsModule } from './modules/attachments/attachments.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { ApprovalModule } from './modules/approval/approval.module';
+import { BudgetModule } from './modules/budget/budget.module';
+import { ProjectModule } from './modules/project/project.module';
+import { VisaModule } from './modules/visa/visa.module';
+import { SettlementModule } from './modules/settlement/settlement.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -25,6 +30,11 @@ import { HealthModule } from './modules/health/health.module';
     StatisticsModule,
     PermissionsModule,
     NotificationModule,
+    ApprovalModule,
+    BudgetModule,
+    ProjectModule,
+    VisaModule,
+    SettlementModule,
   ],
 })
 export class AppModule {}

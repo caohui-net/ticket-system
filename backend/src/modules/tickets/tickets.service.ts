@@ -1,11 +1,14 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { QueryTicketsDto } from './dto/query-tickets.dto';
-import { TicketStatus } from '@prisma/client';
+import { ReviewRepairDto } from './dto/review-repair.dto';
+import { TicketStatus, Phase } from '@prisma/client';
 import { CurrentUser } from './interfaces/current-user.interface';
 import { NotificationService } from '../notification/notification.service';
+import { ApprovalService } from '../approval/approval.service';
+import { APPROVAL_CONFIGS } from '../approval/interfaces/approval-config.interface';
 
 /**
  * 工单服务
@@ -16,6 +19,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    private readonly approvalService: ApprovalService,
   ) {}
 
   /**
@@ -426,5 +430,152 @@ export class TicketsService {
       });
 
     return updatedTicket;
+  }
+
+  /**
+   * 副主任审核报修（REQ-02）
+   * @param id 工单ID
+   * @param dto 审核DTO
+   * @param currentUser 当前用户
+   * @returns 更新后的工单
+   */
+  async reviewRepair(id: number, dto: ReviewRepairDto, currentUser: CurrentUser) {
+    // 1. 验证用户是副主任角色
+    const user = await this.prisma.user.findUnique({
+      where: { id: BigInt(currentUser.id) },
+      include: { userRoles: { include: { role: true } } },
+    });
+
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const isViceDirector = user.userRoles.some(
+      (ur) => ur.role.code === 'VICE_DIRECTOR',
+    );
+
+    if (!isViceDirector) {
+      throw new ForbiddenException('只有副主任可以审核报修单');
+    }
+
+    // 2. 验证工单状态
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: BigInt(id) },
+      include: { approvalFlow: true },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('工单不存在');
+    }
+
+    if (ticket.status !== TicketStatus.OPEN) {
+      throw new BadRequestException('只能审核待处理状态的工单');
+    }
+
+    // 3. 检查是否已有审批流程
+    if (ticket.approvalFlow) {
+      throw new BadRequestException('该工单已创建审批流程，无法重复审核');
+    }
+
+    // 4. 创建审批流程（使用事务）
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 创建报修审批流程
+      await this.approvalService.createFlow(
+        BigInt(id),
+        'REPAIR_REVIEW',
+      );
+
+      // 获取刚创建的审批流程
+      const flow = await tx.approvalFlow.findUnique({
+        where: { ticketId: BigInt(id) },
+        include: { steps: true },
+      });
+
+      if (!flow) {
+        throw new Error('创建审批流程失败');
+      }
+
+      // 立即执行审批操作
+      if (dto.approved) {
+        // 审批通过
+        await this.approvalService.approve(
+          flow.id,
+          1,
+          BigInt(currentUser.id),
+          dto.comment,
+        );
+
+        // 更新工单状态为处理中
+        const updatedTicket = await tx.ticket.update({
+          where: { id: BigInt(id) },
+          data: {
+            status: TicketStatus.IN_PROGRESS,
+            currentPhase: Phase.BUDGET,
+          },
+        });
+
+        // 记录系统日志
+        await tx.ticketLog.create({
+          data: {
+            ticketId: BigInt(id),
+            content: `副主任审核通过：${dto.comment}`,
+            isPublic: true,
+            isSystem: true,
+            creatorSnapshot: {
+              id: Number(currentUser.id),
+              username: currentUser.username,
+              realName: currentUser.realName,
+            },
+          },
+        });
+
+        return updatedTicket;
+      } else {
+        // 审批驳回
+        await this.approvalService.reject(
+          flow.id,
+          1,
+          BigInt(currentUser.id),
+          dto.comment,
+        );
+
+        // 更新工单状态为已取消
+        const updatedTicket = await tx.ticket.update({
+          where: { id: BigInt(id) },
+          data: {
+            status: TicketStatus.CANCELLED,
+          },
+        });
+
+        // 记录系统日志
+        await tx.ticketLog.create({
+          data: {
+            ticketId: BigInt(id),
+            content: `副主任审核驳回：${dto.comment}`,
+            isPublic: true,
+            isSystem: true,
+            creatorSnapshot: {
+              id: Number(currentUser.id),
+              username: currentUser.username,
+              realName: currentUser.realName,
+            },
+          },
+        });
+
+        return updatedTicket;
+      }
+    });
+
+    // 5. 发送通知
+    if (dto.approved) {
+      // 通知乙方人员可以提交预算
+      // TODO: 查询乙方人员并发送通知
+      console.log('报修审核通过，通知乙方人员');
+    } else {
+      // 通知报修人被驳回
+      console.log('报修审核驳回，通知报修人');
+    }
+
+    return result;
   }
 }

@@ -1,0 +1,54 @@
+# Systemd服务配置文件
+# 用于直接运行Node.js应用（非Docker部署）
+# 文件位置: /etc/systemd/system/ticket-system.service
+
+[Unit]
+Description=Ticket System Backend Service
+Documentation=https://github.com/your-org/ticket-system
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=nestjs
+Group=nodejs
+WorkingDirectory=/home/caohui/projects/工单项目/backend
+
+# 环境变量
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+EnvironmentFile=/home/caohui/projects/工单项目/backend/.env
+
+# 启动命令
+ExecStart=/usr/bin/node /home/caohui/projects/工单项目/backend/dist/main.js
+
+# 重启策略
+Restart=always
+RestartSec=10
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ticket-system
+
+# 安全配置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/home/caohui/projects/工单项目/backend/uploads
+ReadWritePaths=/home/caohui/projects/工单项目/backend/logs
+
+# 进程管理
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
