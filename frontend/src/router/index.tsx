@@ -1,9 +1,11 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Login, Register } from '@/pages/Auth';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { TicketList, TicketDetail, TicketCreate, TicketEdit } from '@/pages/Ticket';
+import { Profile, ChangePassword } from '@/pages/Settings';
 
-// 临时占位组件
-const TicketList = () => <div>工单列表</div>;
+
+
 const NotFound = () => (
   <div style={{ textAlign: 'center', padding: '48px' }}>
     <h1>404</h1>
@@ -35,6 +37,46 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <TicketList />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/tickets/create',
+    element: (
+      <ProtectedRoute>
+        <TicketCreate />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/tickets/:id',
+    element: (
+      <ProtectedRoute>
+        <TicketDetail />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/tickets/:id/edit',
+    element: (
+      <ProtectedRoute>
+        <TicketEdit />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/settings/profile',
+    element: (
+      <ProtectedRoute>
+        <Profile />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/settings/password',
+    element: (
+      <ProtectedRoute>
+        <ChangePassword />
       </ProtectedRoute>
     ),
   },

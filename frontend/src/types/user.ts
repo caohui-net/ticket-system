@@ -44,3 +44,19 @@ export interface AuthResponse {
     expiresIn: number;
   };
 }
+
+// 登录请求（API兼容）
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+// 注册请求（API兼容）
+export interface RegisterRequest {
+  username: string;
+  password: string;
+  realName: string;
+  email: string;
+  phone?: string;
+  department?: string;
+}
