@@ -3,6 +3,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# 安装构建工具（bcrypt 需要）
+RUN apk add --no-cache python3 make g++
+
 # 复制package文件
 COPY package*.json ./
 COPY prisma ./prisma/
@@ -24,7 +27,7 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 安装dumb-init用于正确处理信号
+# 安装dumb-init和运行时依赖
 RUN apk add --no-cache dumb-init
 
 # 创建非root用户
@@ -33,12 +36,9 @@ RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
 # 复制package文件
 COPY package*.json ./
 
-# 只安装生产依赖
-RUN npm ci --only=production && npm cache clean --force
-
-# 从builder复制构建产物和Prisma
+# 从builder复制构建产物、Prisma和所有node_modules（包括bcrypt）
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 
 # 创建必要的目录并设置权限

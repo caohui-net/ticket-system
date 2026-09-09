@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd \\\"工单项目\\\" && rtk ls -la docs/ | head -20\",\"description\":\"查看工单项目文档目录\"}",
-  "error": "Exit code 1\n/bin/bash: 第 1 行： cd: 工单项目: 没有那个文件或目录",
-  "timestamp": "2026-09-08T02:32:29.949Z",
+  "tool_input_preview": "{\"command\":\"cd \\\"/home/caohui/projects/工单项目\\\" && docker ps | grep bdhr57t4g || pkill -f bdhr57t4g 2>/dev/null; echo \\\"已停止构建\\\"\",\"description\":\"停止构建进程\"}",
+  "error": "Exit code 144",
+  "timestamp": "2026-09-09T14:44:47.447Z",
   "retry_count": 1
 }

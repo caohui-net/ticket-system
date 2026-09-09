@@ -44,7 +44,7 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if ! command -v docker compose &> /dev/null; then
     log_error "Docker Compose 未安装，请先安装 Docker Compose"
     exit 1
 fi
@@ -108,7 +108,7 @@ fi
 
 # 4. 停止旧容器
 log_info "停止旧容器..."
-docker-compose -f docker-compose.prod.yml down
+docker compose -f docker compose.prod.yml down
 log_success "旧容器已停止"
 
 # 5. 拉取最新代码（如果使用Git）
@@ -119,7 +119,7 @@ fi
 
 # 6. 构建镜像
 log_info "构建Docker镜像..."
-docker-compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker compose.prod.yml build --no-cache
 
 if [ $? -eq 0 ]; then
     log_success "镜像构建完成"
@@ -130,7 +130,7 @@ fi
 
 # 7. 启动服务
 log_info "启动服务..."
-docker-compose -f docker-compose.prod.yml up -d
+docker compose -f docker compose.prod.yml up -d
 
 if [ $? -eq 0 ]; then
     log_success "服务启动成功"
@@ -152,7 +152,7 @@ for i in {1..10}; do
     fi
     if [ $i -eq 10 ]; then
         log_error "数据库启动超时"
-        docker-compose -f docker-compose.prod.yml logs postgres
+        docker compose -f docker compose.prod.yml logs postgres
         exit 1
     fi
     log_info "等待数据库启动... ($i/10)"
@@ -161,13 +161,13 @@ done
 
 # 10. 运行数据库迁移
 log_info "运行数据库迁移..."
-docker-compose -f docker-compose.prod.yml exec -T backend npx prisma migrate deploy
+docker compose -f docker compose.prod.yml exec -T backend npx prisma migrate deploy
 
 if [ $? -eq 0 ]; then
     log_success "数据库迁移完成"
 else
     log_error "数据库迁移失败"
-    docker-compose -f docker-compose.prod.yml logs backend
+    docker compose -f docker compose.prod.yml logs backend
     exit 1
 fi
 
@@ -181,7 +181,7 @@ if [ "$BACKEND_HEALTH" = "200" ]; then
     log_success "后端服务健康 (HTTP 200)"
 else
     log_error "后端服务异常 (HTTP $BACKEND_HEALTH)"
-    docker-compose -f docker-compose.prod.yml logs backend
+    docker compose -f docker compose.prod.yml logs backend
 fi
 
 # 检查前端健康
@@ -190,12 +190,12 @@ if [ "$FRONTEND_HEALTH" = "200" ]; then
     log_success "前端服务健康 (HTTP 200)"
 else
     log_error "前端服务异常 (HTTP $FRONTEND_HEALTH)"
-    docker-compose -f docker-compose.prod.yml logs frontend
+    docker compose -f docker compose.prod.yml logs frontend
 fi
 
 # 12. 显示服务状态
 log_info "服务状态："
-docker-compose -f docker-compose.prod.yml ps
+docker compose -f docker compose.prod.yml ps
 
 # 13. 显示访问信息
 echo ""
@@ -207,9 +207,9 @@ log_success "前端访问地址: http://localhost:${FRONTEND_PORT:-80}"
 log_success "后端访问地址: http://localhost:${BACKEND_PORT:-3000}"
 log_success "API文档地址: http://localhost:${BACKEND_PORT:-3000}/api/docs"
 echo ""
-log_info "查看日志: docker-compose -f docker-compose.prod.yml logs -f"
-log_info "停止服务: docker-compose -f docker-compose.prod.yml down"
-log_info "重启服务: docker-compose -f docker-compose.prod.yml restart"
+log_info "查看日志: docker compose -f docker compose.prod.yml logs -f"
+log_info "停止服务: docker compose -f docker compose.prod.yml down"
+log_info "重启服务: docker compose -f docker compose.prod.yml restart"
 echo ""
 
 # 14. 提示安全建议

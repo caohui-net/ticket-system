@@ -74,3 +74,5 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+.env.production
+backend/create-admin.js

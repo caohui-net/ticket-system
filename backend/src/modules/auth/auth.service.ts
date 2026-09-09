@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, Logger } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -39,7 +39,7 @@ export class AuthService {
     }
 
     // 加密密码
-    const saltRounds = this.configService.get<number>('BCRYPT_SALT_ROUNDS', 10);
+    const saltRounds = parseInt(this.configService.get<string>('BCRYPT_SALT_ROUNDS', '10'), 10);
     const hashedPassword = await bcrypt.hash(registerDto.password, saltRounds);
 
     // 创建用户
@@ -54,7 +54,6 @@ export class AuthService {
         status: 1,
       },
       select: {
-        id: true,
         username: true,
         realName: true,
         email: true,
@@ -67,7 +66,10 @@ export class AuthService {
 
     this.logger.log(`User registered successfully: ${user.username}`);
 
-    return user;
+    return {
+      ...user,
+      message: '注册成功',
+    };
   }
 
   async login(loginDto: LoginDto) {

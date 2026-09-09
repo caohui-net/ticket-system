@@ -1,3 +1,9 @@
+node_modules
+dist
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
 # 环境变量
 .env
 .env.local
@@ -54,6 +60,3 @@ migrate.sh
 .eslintrc.js
 tsconfig.json
 tsconfig.build.json
-
-# 排除原始源码（只保留构建产物）
-src
